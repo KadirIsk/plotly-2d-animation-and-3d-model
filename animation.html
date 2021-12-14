@@ -1,0 +1,190 @@
+<head>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+</head>
+
+<body>
+	<div id="myDiv"></div>
+	<button onclick="requestAnimationFrame(update)">Simulate</button>
+	<script>
+		// python -m http.server 8888
+		const getXY = async function (data_x, data_y) {
+			return await Promise.all([
+				fetch(data_x),
+				fetch(data_y)
+			]).then(function (responses) {
+				// Get a JSON object from each of the responses
+				return Promise.all(responses.map(function (response) {
+					return response.json();
+				}));
+			}).catch(function (error) {
+				// if there's an error, log it
+				console.log(error);
+			});
+		}
+
+		const file_x = 'elcentro_X.dat';
+		const file_y = 'elcentro_Y.dat';
+
+		var floor_gap = 500;
+		var floor1 = 0;
+		var floor2 = floor_gap * 1;
+		var floor3 = floor_gap * 2;
+		var floor4 = floor_gap * 3;
+		var floor5 = floor_gap * 4;
+
+
+		var floor1_x = [0], floor1_y = [0];
+		var floor2_x = [0], floor2_y = [0];
+		var floor3_x = [0], floor3_y = [0];
+		var floor4_x = [0], floor4_y = [0];
+		var floor5_x = [0], floor5_y = [0];
+
+
+		var floor1_trace = {
+			x: floor1_x,
+			y: floor1_y,
+			name: 'Floor 1',
+			type: 'scatter',
+			mode: 'markers',
+			marker: {
+				color: 'rgba(250, 250, 250, 0.00)',
+				size: 80,
+				line: {
+					color: 'rgb(50, 150, 50)',
+					width: 12
+				}
+			}
+		};
+
+		var floor2_trace = {
+			x: floor2_x,
+			y: floor2_y,
+			name: 'Floor 2',
+			type: 'scatter',
+			mode: 'markers',
+			marker: {
+				color: 'rgba(17, 157, 255, 0.00)',
+				size: 80,
+				line: {
+					color: 'rgb(150, 50, 50)',
+					width: 12
+				}
+			}
+		};
+
+
+		var floor3_trace = {
+			x: floor3_x,
+			y: floor3_y,
+			name: 'Floor 3',
+			type: 'scatter',
+			mode: 'markers',
+			marker: {
+				color: 'rgba(17, 157, 255, 0.00)',
+				size: 80,
+				line: {
+					color: 'rgb(250, 150, 50)',
+					width: 12
+				}
+			}
+		};
+
+
+		var floor4_trace = {
+			x: floor4_x,
+			y: floor4_y,
+			name: 'Floor 4',
+			type: 'scatter',
+			mode: 'markers',
+			marker: {
+				color: 'rgba(17, 157, 255, 0.00)',
+				size: 80,
+				line: {
+					color: 'rgb(100, 250, 100)',
+					width: 12
+				}
+			}
+		};
+
+
+		var floor5_trace = {
+			x: floor5_x,
+			y: floor5_y,
+			name: 'Floor 5',
+			type: 'scatter',
+			mode: 'markers',
+			marker: {
+				color: 'rgba(17, 157, 255, 0.00)',
+				size: 80,
+				line: {
+					color: 'rgb(100, 100, 150)',
+					width: 12
+				}
+			}
+		};
+
+
+		var data = [floor1_trace, floor2_trace, floor3_trace, floor4_trace, floor5_trace];
+		var x = [];
+		var y = [];
+		getXY(file_x, file_y)
+			.then(val => {
+				x = val[0];
+				y = val[1];
+
+				Plotly.newPlot('myDiv', data, {
+					width: 700,
+  					height: 600,
+					xaxis: { range: [-10, 10] },
+					yaxis: { range: [-10, 10] }
+				});
+
+			}).catch(e => {
+				console.log(e);
+			});
+
+		var frame_count = 0;
+		function update() {
+			nextPositions();
+
+			Plotly.animate('myDiv', {data: [data]}, {
+				transition: {
+					duration: 0.02
+				},
+				frame: {
+					duration: 0,
+					redraw: true
+				}
+			});
+
+			if (frame_count < floor_gap) {
+				frame_count++;
+				requestAnimationFrame(update);
+			}
+		}
+
+		function nextPositions() {
+			//console.log(frame_count);
+
+			//console.log(x.position[floor2 + frame_count]);
+			
+			floor1_x[0] = floor1_x[0] + x.position[floor1 + frame_count];
+			floor1_y[0] = floor1_y[0] + y.position[floor1 + frame_count];
+
+			floor2_x[0] = floor2_x[0] + x.position[floor2 + frame_count];
+			floor2_y[0] = floor2_y[0] + y.position[floor2 + frame_count];
+
+			floor3_x[0] = floor3_x[0] + x.position[floor3 + frame_count];
+			floor3_y[0] = floor3_y[0] + y.position[floor3 + frame_count];
+
+			floor4_x[0] = floor4_x[0] + x.position[floor4 + frame_count];
+			floor4_y[0] = floor4_y[0] + y.position[floor4 + frame_count];
+
+			floor5_x[0] = floor5_x[0] + x.position[floor5 + frame_count];
+			floor5_y[0] = floor5_y[0] + y.position[floor5 + frame_count];
+		}
+
+	</script>
+</body>

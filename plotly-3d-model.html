@@ -1,0 +1,290 @@
+<head>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+</head>
+
+<body>
+	<button onclick="simulate()">Animate</button>
+	<div id="myDiv"></div>
+	<div id="graph"></div>
+	<script>
+		const getNodeXYZ = async function (node_file, nodex_file, nodey_file, nodez_file) {
+			return await Promise.all([
+				fetch(node_file),
+				fetch(nodex_file),
+				fetch(nodey_file),
+				fetch(nodez_file)
+			]).then(function (responses) {
+				// Get a JSON object from each of the responses
+				return Promise.all(responses.map(function (response) {
+					return response.json();
+				}));
+			}).catch(function (error) {
+				// if there's an error, log it
+				console.log(error);
+			});
+		}
+
+		var data = [];
+
+		var resp_x = [];
+		var resp_y = [];
+		var resp_z = [];
+
+		let node_file = 'node.json';
+		let nodex_file = 'node0x_data.json';
+		let nodey_file = 'node0y_data.json';
+		let nodez_file = 'node0z_data.json';
+
+		var init_x = [];
+		var init_y = [];
+		var init_z = [];
+
+		var dx = [];
+		var dy = [];
+		var dz = [];
+
+		var floor_count = 21;
+		var floor_n = 4;
+		var floor_m = 4;
+		var factor = 250.0;
+
+		var floor_nodes_z_axis = []; // (NxM) by floor_count => 16x21
+		var floor_nodes_y_axis = []; // Nx1 => 4x1
+		var floor_nodes_x_axis = []; // MxN => 4x4
+
+		getNodeXYZ(node_file, nodex_file, nodey_file, nodez_file)
+			.then(val => {
+
+				init_x = val[0].x;
+				init_y = val[0].y;
+				init_z = val[0].z;
+
+				dx = val[1].points;
+				dy = val[2].points;
+				dz = val[3].points;
+
+				computeFrames();
+
+				generateCurrentFrame();
+
+				Plotly.newPlot('myDiv', traces, {
+					// autosize: false,
+					width: 1050,
+					height: 1000,
+					showlegend: false
+				});
+
+			}).catch(e => {
+				console.log(e);
+			});
+
+		// fetch(node_file)
+		// 	.then(response => response.json())
+		// 	.then(resp => {
+		// 		//console.log(data);
+		// 		resp_x = resp.x;
+		// 		resp_y = resp.y;
+		// 		resp_z = resp.z;
+
+		// 		data = {
+		// 			type: 'scatter3d',
+		// 			mode: 'markers',
+		// 			x: resp_x,
+		// 			y: resp_y,
+		// 			z: resp_z,
+		// 			opacity: 1,
+		// 			//line: {
+		// 			//	width: 6,
+		// 			//reversescale: false
+		// 			//}
+		// 		};
+
+		// 		Plotly.newPlot('myDiv', [data], {
+		// 			scene: {
+		// 				xaxis: { title: 'X AXIS TITLE', range: [-100, 35000] },
+		// 				yaxis: { title: 'Y AXIS TITLE', range: [-100, 35000] },
+		// 				zaxis: { title: 'Z AXIS TITLE', range: [-100, 65000] },
+		// 			},
+		// 			autosize: false,
+		// 			width: 1550,
+		// 			height: 1100,
+		// 		});
+		// 	});
+
+		var simulation_index = 0;
+		var traces = [];
+
+		var node_ind;
+		function generateCurrentFrame() {
+			traces = [];
+			node_ind = 1;
+
+			floor_nodes_z_axis = initZ();
+			for (let i = 0; i < floor_count; i++) {
+				floor_nodes_x_axis = initX();
+				for (let j = 0; j < floor_m; j++) {
+					floor_nodes_y_axis = initY();
+					for (let k = 0; k < floor_n; k++, node_ind++) {
+						floor_nodes_y_axis[0][k] = dx[simulation_index][node_ind];
+						floor_nodes_y_axis[1][k] = dy[simulation_index][node_ind];
+						floor_nodes_y_axis[2][k] = dz[simulation_index][node_ind];
+
+						floor_nodes_x_axis[k][0][j] = dx[simulation_index][node_ind];
+						floor_nodes_x_axis[k][1][j] = dy[simulation_index][node_ind];
+						floor_nodes_x_axis[k][2][j] = dz[simulation_index][node_ind];
+
+						floor_nodes_z_axis[j * floor_n + k][0][i] = dx[simulation_index][node_ind];
+						floor_nodes_z_axis[j * floor_n + k][1][i] = dy[simulation_index][node_ind];
+						floor_nodes_z_axis[j * floor_n + k][2][i] = dz[simulation_index][node_ind];
+					}
+
+					traces = traces.concat(get_traces_for_yaxis());
+				}
+				//console.log(floor_nodes_x_axis);
+				traces = traces.concat(get_traces_for_xaxis());
+			}
+			traces = traces.concat(get_traces_for_zaxis());
+		}
+
+		function get_traces_for_yaxis() {
+			let trace_y = {
+				type: 'scatter3d',
+				mode: 'lines',
+				x: floor_nodes_y_axis[0],
+				y: floor_nodes_y_axis[1],
+				z: floor_nodes_y_axis[2],
+				line: {
+					color: 'rgb(50, 50, 200)',
+					width: 3
+				}
+			};
+
+			return trace_y;
+
+		}
+
+		function get_traces_for_xaxis() {
+			let trace_x = [];
+
+			for (let i = 0; i < floor_m; i++) {
+				trace_x.push({
+					type: 'scatter3d',
+					mode: 'lines',
+					x: floor_nodes_x_axis[i][0],
+					y: floor_nodes_x_axis[i][1],
+					z: floor_nodes_x_axis[i][2],
+					line: {
+						color: 'rgb(50, 50, 200)',
+						width: 3
+					}
+				});
+			}
+
+			return trace_x;
+		}
+
+		function get_traces_for_zaxis() {
+			let trace_z = [];
+
+			for (let i = 0; i < floor_m * floor_n; i++) {
+				trace_z.push({
+					type: 'scatter3d',
+					mode: 'lines',
+					x: floor_nodes_z_axis[i][0],
+					y: floor_nodes_z_axis[i][1],
+					z: floor_nodes_z_axis[i][2],
+					line: {
+						color: 'rgb(50, 50, 200)',
+						width: 3
+					}
+				});
+			}
+
+			return trace_z;
+		}
+
+		function initX() {
+			var arr = new Array(floor_m);
+			for (let i = 0; i < floor_m; i++) {
+				arr[i] = new Array(3); // x,y,z
+
+				for (let j = 0; j < 3; j++) {
+					arr[i][j] = new Array(floor_n);
+				}
+			}
+
+			return arr;
+		}
+
+		function initY() {
+			var arr = new Array(3); // x,y,z
+
+			for (let i = 0; i < 3; i++) {
+				arr[i] = new Array(floor_n);
+			}
+
+			return arr;
+		}
+
+		function initZ() {
+			var arr = new Array(floor_m * floor_n);
+			for (let i = 0; i < floor_m * floor_n; i++) {
+				arr[i] = new Array(3); // x,y,z
+
+				for (let j = 0; j < 3; j++) {
+					arr[i][j] = new Array(floor_count);
+				}
+			}
+
+			return arr;
+		}
+
+
+		function simulate() {
+			generateCurrentFrame();
+
+			simulation_index += 100;
+
+			// Plotly.redraw('myDiv', traces, {
+			// 	// autosize: false,
+			// 	width: 1550,
+			// 	height: 1200,
+			// 	showlegend: false
+			// });
+
+			console.log("begin");
+			Plotly.newPlot('myDiv', traces, {
+					// autosize: false,
+					width: 1050,
+					height: 1000,
+					showlegend: false
+				});
+
+			console.log(simulation_index);
+			console.log("end");
+		}
+
+		function computeFrames() {
+			for (let i = 0; i < dx.length; i++) {
+				for (let j = 1; j < dx[i].length; j++) {
+					dx[i][j] = init_x[j - 1] + dx[i][j] * factor;
+				}
+			}
+
+			for (let i = 0; i < dy.length; i++) {
+				for (let j = 1; j < dy[i].length; j++) {
+					dy[i][j] = init_y[j - 1] + dy[i][j] * factor;
+				}
+			}
+
+			for (let i = 0; i < dz.length; i++) {
+				for (let j = 1; j < dz[i].length; j++) {
+					dz[i][j] = init_z[j - 1] + dz[i][j] * factor;
+				}
+			}
+		}
+
+	</script>
+</body>
