@@ -7,7 +7,6 @@
 <body>
 	<button onclick="simulate()">Animate</button>
 	<div id="myDiv"></div>
-	<div id="graph"></div>
 	<script>
 		const getNodeXYZ = async function (node_file, nodex_file, nodey_file, nodez_file) {
 			return await Promise.all([
@@ -54,6 +53,9 @@
 		var floor_nodes_y_axis = []; // Nx1 => 4x1
 		var floor_nodes_x_axis = []; // MxN => 4x4
 
+		var simulation_index = 0;
+		var traces = [];
+
 		getNodeXYZ(node_file, nodex_file, nodey_file, nodez_file)
 			.then(val => {
 
@@ -67,10 +69,26 @@
 
 				computeFrames();
 
-				generateCurrentFrame();
+				traces = generateCurrentFrame();
 
 				Plotly.newPlot('myDiv', traces, {
-					// autosize: false,
+					scene: {
+						xaxis: {
+							// gridcolor: 'rgb(238, 238, 238)',
+							showline: false,
+							// range: [-10000, 25000]
+						},
+						yaxis: {
+							showline: false,
+							// range: [-10000, 25000]
+						},
+						// camera: {
+						// 	center: { x: 0, y: 0, z: 0 },
+						// 	eye: { x: 0, y: 3, z: 0.2 },
+						// 	up: { x: 0, y: 0, z: 0 }
+						// }
+					},
+					autosize: false,
 					width: 1050,
 					height: 1000,
 					showlegend: false
@@ -113,12 +131,9 @@
 		// 		});
 		// 	});
 
-		var simulation_index = 0;
-		var traces = [];
-
 		var node_ind;
 		function generateCurrentFrame() {
-			traces = [];
+			let loc_traces = [];
 			node_ind = 1;
 
 			floor_nodes_z_axis = initZ();
@@ -140,12 +155,14 @@
 						floor_nodes_z_axis[j * floor_n + k][2][i] = dz[simulation_index][node_ind];
 					}
 
-					traces = traces.concat(get_traces_for_yaxis());
+					loc_traces = loc_traces.concat(get_traces_for_yaxis());
 				}
 				//console.log(floor_nodes_x_axis);
-				traces = traces.concat(get_traces_for_xaxis());
+				loc_traces = loc_traces.concat(get_traces_for_xaxis());
 			}
-			traces = traces.concat(get_traces_for_zaxis());
+			loc_traces = loc_traces.concat(get_traces_for_zaxis());
+
+			return loc_traces;
 		}
 
 		function get_traces_for_yaxis() {
@@ -241,29 +258,55 @@
 			return arr;
 		}
 
-
 		function simulate() {
-			generateCurrentFrame();
+			simulation_index = 0;
+			const interval = setInterval(function () {
+				simulation_index += 5;
 
-			simulation_index += 100;
+				if (simulation_index >= 300) {
+					clearInterval(interval);
+					return;
+				}
 
-			// Plotly.redraw('myDiv', traces, {
-			// 	// autosize: false,
-			// 	width: 1550,
-			// 	height: 1200,
-			// 	showlegend: false
-			// });
+				console.log(simulation_index);
+				let tmp_traces = generateCurrentFrame();
 
-			console.log("begin");
-			Plotly.newPlot('myDiv', traces, {
+				update_global_traces(tmp_traces);
+
+
+				let layout = {
+					scene: {
+						camera: {
+							eye: { x: 0, y: 3, z: 0.2 }
+						}
+					}
+				};
+
+				Plotly.redraw('myDiv', traces, {
 					// autosize: false,
-					width: 1050,
-					height: 1000,
-					showlegend: false
+					// width: 1050,
+					// height: 1000,
+					// showlegend: false
 				});
 
-			console.log(simulation_index);
-			console.log("end");
+			}, 200);
+		}
+
+
+		function update_global_traces(tmp_traces) {
+			for (let i = 0; i < tmp_traces.length; i++) {
+				for (let j = 0; j < tmp_traces[i].x.length; j++) {
+					traces[i].x[j] = tmp_traces[i].x[j];
+				}
+
+				for (let j = 0; j < tmp_traces[i].y.length; j++) {
+					traces[i].y[j] = tmp_traces[i].y[j];
+				}
+
+				for (let j = 0; j < tmp_traces[i].z.length; j++) {
+					traces[i].z[j] = tmp_traces[i].z[j];
+				}
+			}
 		}
 
 		function computeFrames() {
