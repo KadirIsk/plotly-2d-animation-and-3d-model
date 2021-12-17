@@ -56,6 +56,10 @@
 		var simulation_index = 0;
 		var traces = [];
 
+		var zone_height = 60*1000.0;
+		var center_x = 9000.0;
+		var center_y = 9000.0;
+
 		getNodeXYZ(node_file, nodex_file, nodey_file, nodez_file)
 			.then(val => {
 
@@ -73,15 +77,22 @@
 
 				Plotly.newPlot('myDiv', traces, {
 					scene: {
+						aspectmode: "manual",
+						aspectratio: {
+							x: 1, y: 0.7, z: 1,
+						},
 						xaxis: {
 							// gridcolor: 'rgb(238, 238, 238)',
 							showline: false,
-							// range: [-10000, 25000]
+							range: [(-1*zone_height)/2 + center_x, zone_height/2 + center_x]
 						},
 						yaxis: {
 							showline: false,
-							// range: [-10000, 25000]
+							range: [(-1*zone_height)/2 + center_y, zone_height/2 + center_y]
 						},
+						zaxis: {
+							range: [0, zone_height + 1000]
+						}
 						// camera: {
 						// 	center: { x: 0, y: 0, z: 0 },
 						// 	eye: { x: 0, y: 3, z: 0.2 },
@@ -263,7 +274,7 @@
 			const interval = setInterval(function () {
 				simulation_index += 5;
 
-				if (simulation_index >= 300) {
+				if (simulation_index >= 1000) {
 					clearInterval(interval);
 					return;
 				}
@@ -289,7 +300,7 @@
 					// showlegend: false
 				});
 
-			}, 200);
+			}, 150);
 		}
 
 
