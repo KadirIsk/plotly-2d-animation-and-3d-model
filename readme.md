@@ -3,4 +3,4 @@
 3. python -m http.server 8888
 
 
-Go to link on browser => localhost:8888/animation.html or localhost:8888/plotly-3d-model.html
+Go to link on browser => localhost:8888/animation.html, localhost:8888/camlica-3d-model.html or localhost:8888/plotly-3d-model.html
