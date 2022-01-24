@@ -1,0 +1,146 @@
+<head>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+</head>
+
+<body>
+	<button onclick="simulate()">Animate</button>
+	<div id="myDiv"></div>
+	<script>
+		// Plotly Graphing Library => https://plotly.com/javascript/
+
+		const getNodeAndConnMap = async function (node_file, conn_map_file) {
+			return await Promise.all([
+				fetch(node_file),
+				fetch(conn_map_file)
+			]).then(function (responses) {
+				// Get a JSON object from each of the responses
+				return Promise.all(responses.map(function (response) {
+					return response.json();
+				}));
+			}).catch(function (error) {
+				// if there's an error, log it
+				console.log(error);
+			});
+		}
+
+		// verilerin tutuldugu dosyalar
+		let node_file = 'node-points.json';
+		let conn_map_file = 'traces.json';
+
+		// node'larin x, y, z bilesenleri
+		var init_x = [];
+		var init_y = [];
+		var init_z = [];
+
+		// her bir trace hangi node'lardan olusuyor bilgisini tutacak
+		var trace_map = [];
+
+		// model icin olusturulacak trace'leri tutacak
+		var traces = [];
+
+		var zone_height = 60 * 1000.0;
+		var center_x = 9000.0;
+		var center_y = 9000.0;
+
+		getNodeAndConnMap(node_file, conn_map_file)
+			.then(val => {
+
+				// node'lara ait x, y, z degerlerini al
+				// exel'deki node id'leri init_ dizilerinde indis olarak kullanildi
+				//
+				// 1 numarali node'un bilgileri init_ dizilerinde 0. indiste
+				// 150 numarali node'un bilgileri init_ dizilerinde 149. indiste
+				// gibi bir yapi kullanildi
+				init_x = val[0].x;
+				init_y = val[0].y;
+				init_z = val[0].z;
+
+				// trace'lerin hangi node'lardan olustugu bilgisini al
+				trace_map = val[1].traces;
+
+				// trace_map'i kullanarak trace'leri olustur
+				traces = generateCurrentFrame();
+
+				// plotly api'sine 3d modeli iceren frame'i cizdir
+				Plotly.newPlot('myDiv', traces, {
+					scene: {
+						aspectmode: "manual",
+						aspectratio: {
+							x: 0.25, y: 0.25, z: 1,
+						},
+						xaxis: {
+							// gridcolor: 'rgb(238, 238, 238)',
+							showline: false,
+							// range: [(-1*zone_height)/2 + center_x, zone_height/2 + center_x]
+						},
+						yaxis: {
+							showline: false,
+							// range: [(-1*zone_height)/2 + center_y, zone_height/2 + center_y]
+						},
+						zaxis: {
+							// range: [0, zone_height + 1000]
+						}
+					},
+					autosize: false,
+					width: 1050,
+					height: 1000,
+					showlegend: false
+				});
+
+			}).catch(e => {
+				console.log(e);
+			});
+
+
+		function generateCurrentFrame() {
+			let loc_traces = [];
+
+			// her bir trace-map icin trace olustur
+			for (let i = 1; i < trace_map.length; i++) {
+				if (trace_map[i] != null) {
+					loc_traces = loc_traces.concat(getTrace(i));
+				}
+			}
+
+			return loc_traces;
+		}
+
+		function getTrace(trace_map_ind) {
+			// bu trace'deki node'lar sirali bir sekilde diziye koyulacak
+			let x = [];
+			let y = [];
+			let z = [];
+
+			let node_ids = trace_map[trace_map_ind].node_ids;
+			for (let i = 0; i < node_ids.length; i++) {
+				x.push(init_x[node_ids[i] - 1]);
+				y.push(init_y[node_ids[i] - 1]);
+				z.push(init_z[node_ids[i] - 1]);
+			}
+
+
+			// line ve marker'dan olusan trace tanimini olustur, ilgili x, y, z degerlerini ver
+			let trace = {
+				type: 'scatter3d',
+				mode: 'lines+markers',
+				x: x,
+				y: y,
+				z: z,
+				line: {
+					color: 'rgb(50, 50, 200)',
+					width: 3
+				},
+				marker: {
+					size: 1,
+					// color: 'rgb(150, 100, 120)',
+					// shape: ['line-ew', "diamond-open", "line-ew", "line-ew", "diamond-open", "line-ew"]
+				},
+			};
+
+			return trace;
+		}
+
+	</script>
+</body>
