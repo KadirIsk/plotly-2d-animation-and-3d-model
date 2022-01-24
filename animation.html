@@ -8,7 +8,8 @@
 	<div id="myDiv"></div>
 	<button onclick="requestAnimationFrame(update)">Simulate</button>
 	<script>
-		// python -m http.server 8888
+		// Plotly Graphing Library => https://plotly.com/javascript/
+
 		const getXY = async function (data_x, data_y) {
 			return await Promise.all([
 				fetch(data_x),
@@ -24,10 +25,12 @@
 			});
 		}
 
+		// animasyonda kullanilacak datalarin tutuldugu dosyalar
 		const file_x = 'elcentro_X.dat';
 		const file_y = 'elcentro_Y.dat';
 
-		var floor_gap = 500;
+		// data 5'e bolundu, 5 farkli kat icin animasyon olusturuldu
+		var floor_gap = 500;	// her kat icin 500 adet data kullanilacak
 		var floor1 = 0;
 		var floor2 = floor_gap * 1;
 		var floor3 = floor_gap * 2;
@@ -35,6 +38,7 @@
 		var floor5 = floor_gap * 4;
 
 
+		// her kat icin baslangic posizyonu (0, 0)
 		var floor1_x = [0], floor1_y = [0];
 		var floor2_x = [0], floor2_y = [0];
 		var floor3_x = [0], floor3_y = [0];
@@ -42,6 +46,7 @@
 		var floor5_x = [0], floor5_y = [0];
 
 
+		// kat 1 icin trace
 		var floor1_trace = {
 			x: floor1_x,
 			y: floor1_y,
@@ -58,6 +63,7 @@
 			}
 		};
 
+		// kat 2 icin trace
 		var floor2_trace = {
 			x: floor2_x,
 			y: floor2_y,
@@ -74,7 +80,7 @@
 			}
 		};
 
-
+		// kat 3 icin trace
 		var floor3_trace = {
 			x: floor3_x,
 			y: floor3_y,
@@ -91,7 +97,7 @@
 			}
 		};
 
-
+		// kat 4 icin trace
 		var floor4_trace = {
 			x: floor4_x,
 			y: floor4_y,
@@ -108,7 +114,7 @@
 			}
 		};
 
-
+		// kat 5 icin trace
 		var floor5_trace = {
 			x: floor5_x,
 			y: floor5_y,
@@ -126,15 +132,20 @@
 		};
 
 
-		var data = [floor1_trace, floor2_trace, floor3_trace, floor4_trace, floor5_trace];
-		var x = [];
-		var y = [];
+		// plotly api'sinin cizdirecegi data
+		var traces = [floor1_trace, floor2_trace, floor3_trace, floor4_trace, floor5_trace];
+
+		var x = []; // elcentro_X.dat verilerini tutacak
+		var y = []; // elcentro_Y.dat verilerini tutacak
+
+		// dosyalari cek
 		getXY(file_x, file_y)
 			.then(val => {
 				x = val[0];
 				y = val[1];
 
-				Plotly.newPlot('myDiv', data, {
+				// plotly api'sine baslangic frame'i cizdir
+				Plotly.newPlot('myDiv', traces, {
 					width: 700,
   					height: 600,
 					xaxis: { range: [-10, 10] },
@@ -147,9 +158,10 @@
 
 		var frame_count = 0;
 		function update() {
-			nextPositions();
+			nextPositions();	// bir sonraki konumlari hesapla
 
-			Plotly.animate('myDiv', {data: [data]}, {
+			// plotly api'si ile eski konumdan yeni konuma animasyonu baslat
+			Plotly.animate('myDiv', {data: [traces]}, {
 				transition: {
 					duration: 0.02
 				},
@@ -159,6 +171,7 @@
 				}
 			});
 
+			// 500 adet data islendikten sonra animasyonu durdur
 			if (frame_count < floor_gap) {
 				frame_count++;
 				requestAnimationFrame(update);
@@ -166,10 +179,7 @@
 		}
 
 		function nextPositions() {
-			//console.log(frame_count);
-
-			//console.log(x.position[floor2 + frame_count]);
-			
+			// mevcut konumu bir sonraki konum ile update et
 			floor1_x[0] = floor1_x[0] + x.position[floor1 + frame_count];
 			floor1_y[0] = floor1_y[0] + y.position[floor1 + frame_count];
 
