@@ -1,0 +1,89 @@
+<html>
+
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+</head>
+
+<body>
+    <div class="wrapper">
+        <div id="chart"></div>
+        <script>
+            json_file = "seismic-data_20211107-124233_5942fd58-8bc1-49e7-acf7-38c893cdcb1f.json";
+
+            var cnt = 0;
+            var seismic_data;
+            var seismic_time;
+
+            fetch(json_file)
+                .then(response => response.json())
+                .then(data => {
+
+                    // data bilgileri
+                    seismic_data = data.samples;
+                    // data'ya ait zaman bilgisi
+                    seismic_time = data.samples_times;
+
+
+                    // cizim icin kullanilacak trace
+                    var trace = {
+                        type: "scatter",
+                        mode: "lines",
+                        name: 'Seismic Datas',
+                        x: data.samples_times,
+                        y: data.samples,
+                        line: { color: 'grey' }
+                    }
+
+                    var data = [trace];
+
+                    var layout = {
+                        title: 'SEISMIC DATA',
+                        xaxis: {
+                            type: 'date',
+                            title: 'TIME',
+                            titlefont: {
+                                family: 'Arial, sans-serif',
+                                size: 18,
+                                color: 'lightgrey'
+                            },
+                            showticklabels: true,
+                            tickangle: 'auto',
+                            tickfont: {
+                                family: 'Old Standard TT, serif',
+                                size: 14,
+                                color: 'black'
+                            },
+                            exponentformat: 'e',
+                            showexponent: 'all'
+                        },
+                        yaxis: {
+                            title: 'SENSOR DATA',
+                            titlefont: {
+                                family: 'Arial, sans-serif',
+                                size: 18,
+                                color: 'lightgrey'
+                            },
+                            showticklabels: true,
+                            tickangle: 45,
+                            tickfont: {
+                                family: 'Old Standard TT, serif',
+                                size: 14,
+                                color: 'black'
+                            },
+                            exponentformat: 'e',
+                            showexponent: 'all'
+                        }
+                    };
+
+                    // plotly api'sini kullanarak data yi ciz
+                    Plotly.newPlot('chart', data, layout);
+
+                });
+
+        </script>
+    </div>
+</body>
+
+</html>
