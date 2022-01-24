@@ -8,6 +8,9 @@
 	<button onclick="simulate()">Animate</button>
 	<div id="myDiv"></div>
 	<script>
+		// Plotly Graphing Library => https://plotly.com/javascript/
+
+		// node bilgilerini ve node'larin zamana bagli degisikliklerini iceren dosyalari getir
 		const getNodeXYZ = async function (node_file, nodex_file, nodey_file, nodez_file) {
 			return await Promise.all([
 				fetch(node_file),
@@ -25,56 +28,98 @@
 			});
 		}
 
-		var data = [];
-
-		var resp_x = [];
-		var resp_y = [];
-		var resp_z = [];
-
+		// verilerin tutuldugu dosya isimleri
+		//
+		// node.json dosyasinda node bilgileri belirli bir duzende olusturulmus ve tum node'lar tek bir array'a koyulmus
+		// 2. katta
+		// a b
+		// c d
+		// 1. katta
+		// e f
+		// g h
+		// node'lari olsun. Bu durumda node.json'daki array'de node'larin dizilis sirasi
+		// [c, a, d, b, g, e, h, f] seklinde olacaktir.
 		let node_file = 'node.json';
+
+		// x, y, z degerlerini tutuan dosyalardaki array'larin ilk degeri zaman bilgisi, geri kalanlar ise node'lara ait o andaki ve o eksendeki degisiklik bilgisi
 		let nodex_file = 'node0x_data.json';
 		let nodey_file = 'node0y_data.json';
 		let nodez_file = 'node0z_data.json';
 
+		// node'larin initial posizyonlari x, y, z
 		var init_x = [];
 		var init_y = [];
 		var init_z = [];
 
+		// node'larin zamana bagli degisiklikleri x, y, z
 		var dx = [];
 		var dy = [];
 		var dz = [];
 
-		var floor_count = 21;
-		var floor_n = 4;
-		var floor_m = 4;
-		var factor = 250.0;
+		var floor_count = 21;	// kat sayisi
+		var floor_n = 4;		// y-eksenindeki node sayisi
+		var floor_m = 4;		// x-eksenindeki node sayisi
+		var factor = 250.0;		// sensorden alinan konum degisiklik bilgisini buyutmek icin, binanin sallanma animasyonu daha net gormek icin
 
-		var floor_nodes_z_axis = []; // (NxM) by floor_count => 16x21
+
+		// Bina 2 kattan olussun, her katta 6 node olsun, y ekseninde 2, x ekseninde 3 node olsun
+		// 2. katta (2x3) 6 node olsun
+		//	a  b  c
+		//	d  e  f
+		
+		// 1. katta (2x3) 6 node olsun
+		//	g  h  i
+		//	k  l  m
+		//
+		// Bu durumda;	
+		// floor_nodes_y_axis degiskeni
+		// [a, d], [b, e], [c, f]
+		// [g, k], [h, l], [i, m]
+		// 2'lilerini tutacaktir
+		//
+		// floor_nodes_x_axis degiskeni
+		// [a, b, c], [d, e, f]
+		// [g, h, i], [k, l, m]
+		// 2'lilerini tutacaktir
+		//
+		// floor_nodes_z_axis degiskeni
+		// [a, g], [b, h], [c, i]
+		// [d, k], [e, l], [f, m]
+		// 2'lilerini tutacaktir
+		//
+		// Amac node'lari duz bir dogru olusturacak sekilde arka arkada dizmek
+
+
+		var floor_nodes_z_axis = []; // (NxM)xfloor_count => 16x21
 		var floor_nodes_y_axis = []; // Nx1 => 4x1
 		var floor_nodes_x_axis = []; // MxN => 4x4
 
-		var simulation_index = 0;
-		var traces = [];
+		var simulation_index = 0;	// animasyon icin kullaniliyor, su anki frame numarasi gibi dusunulebilir
+		var traces = [];	// plotly api'sinin cizim icin kullanacagi bilgiler
 
-		var zone_height = 60*1000.0;
-		var center_x = 9000.0;
-		var center_y = 9000.0;
+		var zone_height = 60*1000.0;	// sahne yuksekligi
+		var center_x = 9000.0;			// sahne x-ekseni merkezi
+		var center_y = 9000.0;			// sahne y-ekseni merkezi
 
+		// dosyalari cek
 		getNodeXYZ(node_file, nodex_file, nodey_file, nodez_file)
 			.then(val => {
 
+				// node'larin baslangic degerleri
 				init_x = val[0].x;
 				init_y = val[0].y;
 				init_z = val[0].z;
 
+				// node'larin zamana bagli degisim bilgileri
 				dx = val[1].points;
 				dy = val[2].points;
 				dz = val[3].points;
 
-				computeFrames();
+				computeFrames();	// mevcut dosyada 1000 tane t ani var, tum anlar icin cizilecek frame'ler tek seferde hesaplaniyor
 
-				traces = generateCurrentFrame();
+				traces = generateCurrentFrame();	// ilk cizilecek frame'i olustur
 
+				// plotly api'sine frame'i cizdir
 				Plotly.newPlot('myDiv', traces, {
 					scene: {
 						aspectmode: "manual",
@@ -109,50 +154,20 @@
 				console.log(e);
 			});
 
-		// fetch(node_file)
-		// 	.then(response => response.json())
-		// 	.then(resp => {
-		// 		//console.log(data);
-		// 		resp_x = resp.x;
-		// 		resp_y = resp.y;
-		// 		resp_z = resp.z;
-
-		// 		data = {
-		// 			type: 'scatter3d',
-		// 			mode: 'markers',
-		// 			x: resp_x,
-		// 			y: resp_y,
-		// 			z: resp_z,
-		// 			opacity: 1,
-		// 			//line: {
-		// 			//	width: 6,
-		// 			//reversescale: false
-		// 			//}
-		// 		};
-
-		// 		Plotly.newPlot('myDiv', [data], {
-		// 			scene: {
-		// 				xaxis: { title: 'X AXIS TITLE', range: [-100, 35000] },
-		// 				yaxis: { title: 'Y AXIS TITLE', range: [-100, 35000] },
-		// 				zaxis: { title: 'Z AXIS TITLE', range: [-100, 65000] },
-		// 			},
-		// 			autosize: false,
-		// 			width: 1550,
-		// 			height: 1100,
-		// 		});
-		// 	});
 
 		var node_ind;
 		function generateCurrentFrame() {
 			let loc_traces = [];
 			node_ind = 1;
 
-			floor_nodes_z_axis = initZ();
+			floor_nodes_z_axis = initZ();	// z ekseninde tutulacak node'lar icin bos dizi olustur
 			for (let i = 0; i < floor_count; i++) {
-				floor_nodes_x_axis = initX();
+				floor_nodes_x_axis = initX();	// x ekseninde tutulacak node'lar icin bos dizi olustur
 				for (let j = 0; j < floor_m; j++) {
-					floor_nodes_y_axis = initY();
+					floor_nodes_y_axis = initY();	// y ekseninde tutulacak node'lar icin bos dizi olustur
 					for (let k = 0; k < floor_n; k++, node_ind++) {
+						// her kattaki node'lar x, y, z-ekseni icin array'lere aliniyor
+
 						floor_nodes_y_axis[0][k] = dx[simulation_index][node_ind];
 						floor_nodes_y_axis[1][k] = dy[simulation_index][node_ind];
 						floor_nodes_y_axis[2][k] = dz[simulation_index][node_ind];
@@ -168,7 +183,6 @@
 
 					loc_traces = loc_traces.concat(get_traces_for_yaxis());
 				}
-				//console.log(floor_nodes_x_axis);
 				loc_traces = loc_traces.concat(get_traces_for_xaxis());
 			}
 			loc_traces = loc_traces.concat(get_traces_for_zaxis());
@@ -177,6 +191,7 @@
 		}
 
 		function get_traces_for_yaxis() {
+			// y-eksenindeki tek bir line icin trace olustur, her kat icin 4 tane ayri ayri olusuyor
 			let trace_y = {
 				type: 'scatter3d',
 				mode: 'lines',
@@ -194,6 +209,8 @@
 		}
 
 		function get_traces_for_xaxis() {
+			// x-eksenindeki 4 line icin trace olustur, her kat icin 4 line tek seferde olusuyor
+			// for ile hepsi icin ayri birer trace olusturuluyor
 			let trace_x = [];
 
 			for (let i = 0; i < floor_m; i++) {
@@ -214,6 +231,8 @@
 		}
 
 		function get_traces_for_zaxis() {
+			// z-eksenindeki 16 (mxn) line icin trace olustur, tum bina icin 16 line tek seferde olusuyor
+			// for ile hepsi icin ayri birer trace olusturuluyor
 			let trace_z = [];
 
 			for (let i = 0; i < floor_m * floor_n; i++) {
@@ -269,41 +288,37 @@
 			return arr;
 		}
 
+		// animasyon icin kullaniliyor
+		// simulation_index su an cizdirilecek olan frame index'i ifade ediyor
 		function simulate() {
 			simulation_index = 0;
 			const interval = setInterval(function () {
 				simulation_index += 5;
 
+				// simule edilecek veri kalmadiginda dur
 				if (simulation_index >= 1000) {
 					clearInterval(interval);
 					return;
 				}
 
-				console.log(simulation_index);
+				//console.log(simulation_index);
+				// cizimi yapilacak frame verilerini getir
 				let tmp_traces = generateCurrentFrame();
 
+				// local verileri global verilere kopyala, Plotly.redraw kullanabilmek icin yapiliyor
 				update_global_traces(tmp_traces);
 
-
-				let layout = {
-					scene: {
-						camera: {
-							eye: { x: 0, y: 3, z: 0.2 }
-						}
-					}
-				};
-
+				// cizimi update et
 				Plotly.redraw('myDiv', traces, {
-					// autosize: false,
-					// width: 1050,
-					// height: 1000,
-					// showlegend: false
 				});
 
-			}, 150);
+			}, 150);	// her 150 ms'de yeni frame'i ciz
 		}
 
 
+		// Plotly.redraw fonksiyonunu kullanmak icin var olan traces yapisi guncelleniyor
+		// traces yeniden olusturuldugunda Plotly.redraw fonksiyonu kullanilamiyor
+		// her frame icin traces yeniden olusuturuldugu zaman Plotly.newPlot kullanilmali, ancak bu cok verimli degil
 		function update_global_traces(tmp_traces) {
 			for (let i = 0; i < tmp_traces.length; i++) {
 				for (let j = 0; j < tmp_traces[i].x.length; j++) {
@@ -321,6 +336,8 @@
 		}
 
 		function computeFrames() {
+			// node'larin zamana bagli degisim degerlerine, node'larin initial degerleri ekleniyor
+			// tum frame'ler tek seferde hesaplanmis ve dx, dy, dz dizilerinde tutulmus oluyor
 			for (let i = 0; i < dx.length; i++) {
 				for (let j = 1; j < dx[i].length; j++) {
 					dx[i][j] = init_x[j - 1] + dx[i][j] * factor;
